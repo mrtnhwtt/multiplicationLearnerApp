@@ -1,2 +1,3 @@
 # MentalMathApp
-A simple program for kids to learn multiplications written in python
+A simple program to train your mental math skills.
+written in python
