@@ -34,7 +34,8 @@ def start_game():
     solution_input['state'] = tk.NORMAL
     start_button['text'] = 'Stop'
     solution_input.focus()
-    countdown_thread = threading.Thread(target=countdown, args=[60])
+    countdown_thread = threading.Thread(
+        target=countdown, args=[60], daemon=True)
     countdown_thread.start()
     generate_calculation()
 
@@ -48,21 +49,18 @@ def end_game():
 
 def countdown(t):
     finished = False
-    try:
-        while t >= 0 and playing == True:
-            mins = t // 60
-            secs = t % 60
-            timer = '{:02d}:{:02d}'.format(mins, secs)
-            countdown_string.set(timer)
-            time.sleep(1)
-            t -= 1
-            if(t == 0):
-                finished = True
-        if finished:
-            calculation.set("Time's up!")
-            end_game()
-    except:
-        print('Program was closed while the timer was running')
+    while t >= 0 and playing == True:
+        mins = t // 60
+        secs = t % 60
+        timer = '{:02d}:{:02d}'.format(mins, secs)
+        countdown_string.set(timer)
+        time.sleep(1)
+        t -= 1
+        if(t == 0):
+            finished = True
+    if finished:
+        calculation.set("Time's up!")
+        end_game()
 
 
 def generate_calculation():
