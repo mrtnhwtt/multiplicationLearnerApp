@@ -3,6 +3,7 @@ from tkinter import *
 import time
 import random
 import threading
+import os
 
 root = tk.Tk()
 root.title("MentalMathApp")
@@ -15,21 +16,29 @@ calculation = StringVar(value="Click on Start to begin")
 countdown_string = StringVar(value="01:00")
 score_counter = StringVar(value="0")
 
+if os.path.isfile("score.txt"):
+    with open("score.txt", "r") as f:
+        hightscore = f.read()
+    score_best = StringVar(value=str(hightscore))
+else:
+    score_best = StringVar(value="0")
+
 result = 0
 playing = False
+start_time = 0
+operator = ""
 
 
 def manage_game():
-    global playing
     if playing == False:
-        playing = True
         start_game()
     else:
-        playing = False
         end_game()
 
 
 def start_game():
+    global playing
+    playing = True
     score_counter.set("0")
     solution_input["state"] = tk.NORMAL
     start_button["text"] = "Stop"
@@ -43,13 +52,27 @@ def start_game():
 
 
 def end_game():
+    global playing
+    playing = False
     start_button["text"] = "Start"
     calcul_text["font"] = "SansSerif, 18"
     calcul_text["padx"] = 50
     calcul_text["pady"] = 20
-    calculation.set("Game stopped")
     countdown_string.set("01:00")
     solution_input["state"] = tk.DISABLED
+    manage_score()
+
+
+def manage_score():
+    current_score = int(score_counter.get())
+    best_score = int(score_best.get())
+    if current_score > best_score:
+        score_best.set(current_score)
+        calculation.set("New Hight Score : %s" % (str(current_score)))
+        with open("score.txt", "w") as f:
+            f.write(str(current_score))
+    else:
+        calculation.set("Game ended. Score : %s" % (str(current_score)))
 
 
 def countdown(t):
@@ -64,44 +87,59 @@ def countdown(t):
         if t == 0:
             finished = True
     if finished:
-        calculation.set("Time's up!")
         end_game()
 
 
 def generate_calculation():
-    global result
+    global result, start_time, operator
     rd_nb = round(random.uniform(0, 10), 2)
     if rd_nb <= 2.5:
-        operation = " + "
+        operator = "+"
         x = random.randint(1, 100)
         y = random.randint(1, 100)
         result = x + y
     elif rd_nb <= 5:
-        operation = " - "
+        operator = "-"
         x = random.randint(1, 100)
         y = random.randint(1, 100)
         result = x - y
     else:
-        operation = " x "
+        operator = "x"
         x = random.randint(1, 10)
         y = random.randint(1, 10)
         result = x * y
 
-    print(x, operation, y, "=", result)
-    calculation.set(str(x) + operation + str(y) + " =")
+    print(x, operator, y, "=", result)
+    calculation.set(str(x) + " " + operator + " " + str(y) + " =")
+    start_time = time.time()
 
 
 def check_input(key):
+    inputed_answer = solution_input.get()
     try:
-        if result == int(solution_input.get()):
-            solution_input.delete(0, END)
-            generate_calculation()
-            current_score = int(score_counter.get())
-            current_score = current_score + 5
-            score_counter.set(str(current_score))
+        inputed_answer = int(inputed_answer)
     except:
         print("input was not a valide integer")
         return
+    if result == int(solution_input.get()):
+        solution_input.delete(0, END)
+        current_score = int(score_counter.get())
+        points = calculate_point()
+        new_score = current_score + points
+        score_counter.set(str(new_score))
+        generate_calculation()
+
+
+def calculate_point():
+    max_point = 10
+    multiplier = 1
+    time_elapsed = round(time.time() - start_time, 2)
+    if operator == "x":
+        multiplier = 1.5
+    points = round(max_point * multiplier - time_elapsed)
+    if points < 1:
+        points = 1
+    return points
 
 
 btn_params = {
@@ -126,7 +164,7 @@ text_params = {
     "width": 4,
     "height": 2,
 }
-operation_params = {
+operator_params = {
     "padx": 50,
     "pady": 20,
     "bd": 4,
@@ -152,7 +190,7 @@ timer_label = tk.Label(root, **text_params, textvariable=countdown_string)
 start_button = tk.Button(
     root, **btn_params, text="Start", command=lambda: manage_game()
 )
-calcul_text = tk.Label(root, **operation_params, textvariable=calculation)
+calcul_text = tk.Label(root, **operator_params, textvariable=calculation)
 solution_input = tk.Entry(
     root,
     **input_params,
@@ -162,7 +200,7 @@ solution_input = tk.Entry(
 score_title = tk.Label(root, **text_params, text="Score")
 score = tk.Label(root, **text_params, textvariable=score_counter)
 best_title = tk.Label(root, **text_params, text="Best")
-best = tk.Label(root, **text_params, text="0")
+best = tk.Label(root, **text_params, textvariable=score_best)
 
 solution_input.bind("<KeyRelease>", check_input)
 
